@@ -9,6 +9,19 @@ import { get, post } from "../api/api.js";
  */
 const AuthContext = createContext(null);
 
+// Where each account type lands after logging in.
+export function homeFor(user) {
+  return user?.role === "owner" ? "/dashboard" : "/";
+}
+
+// Send a user back to the page they wanted, if their account type may open it.
+export function afterLoginPath(user, from) {
+  if (!from || from === "/login" || from === "/signup") return homeFor(user);
+  const ownerPage = from.startsWith("/dashboard");
+  if (user.role === "owner") return ownerPage ? from : homeFor(user);
+  return ownerPage ? homeFor(user) : from;
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
