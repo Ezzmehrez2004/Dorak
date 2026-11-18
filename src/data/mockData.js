@@ -25,11 +25,15 @@ export function demoHash(text) {
   return `demo$${h.toString(16)}`;
 }
 
-// Demo accounts, listed in the README. Password for both: demo1234
+// Demo accounts, listed in the README and on the login page. Password for all: demo1234
+// Two account types: customers book and follow queues; owners manage their own shop.
 const DEMO_PASSWORD = "demo1234";
 const users = [
-  { id: 1, name: "Demo Customer", phone: "01000000001" },
-  { id: 2, name: "Nour Hany", phone: "01000000002" },
+  { id: 1, role: "customer", shopId: null, name: "Demo Customer", phone: "01000000001" },
+  { id: 2, role: "customer", shopId: null, name: "Nour Hany", phone: "01000000002" },
+  { id: 3, role: "owner", shopId: 1, name: "Magdy Fawzy", phone: "01000000011" },
+  { id: 4, role: "owner", shopId: 2, name: "Tarek Selim", phone: "01000000012" },
+  { id: 5, role: "owner", shopId: 3, name: "Nabil Kamel", phone: "01000000013" },
 ];
 
 const shops = [
