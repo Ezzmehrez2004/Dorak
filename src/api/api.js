@@ -6,8 +6,10 @@
  * return Promises, wait MOCK_DELAY_MS to imitate the network, and read
  * and write mock data kept in the browser's localStorage.
  *
- * The logged-in user is remembered in localStorage as a stand-in for a
- * session cookie. In Milestone 2, replace the body of `request()` with a
+ * The logged-in user is remembered in sessionStorage as a stand-in for a
+ * session cookie, so it ends when the browser closes. There are two kinds
+ * of account: "customer" (books and follows queues) and "owner" (manages
+ * the queues of their own shop only). In Milestone 2, replace the body of `request()` with a
  * real fetch() to the Express server; the pages do not need to change.
  * Each handler is labeled with the Express route it stands in for.
  */
@@ -64,6 +66,24 @@ function writeStorage(key, value) {
   }
 }
 
+// The session (who is logged in) uses sessionStorage, not localStorage.
+function readSession() {
+  try {
+    return sessionStorage.getItem(STORAGE_KEYS.session);
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(value) {
+  try {
+    if (value === null) sessionStorage.removeItem(STORAGE_KEYS.session);
+    else sessionStorage.setItem(STORAGE_KEYS.session, value);
+  } catch {
+    // storage blocked; the user stays logged out
+  }
+}
+
 function loadDb() {
   const raw = readStorage(STORAGE_KEYS.db);
   if (raw) {
@@ -84,7 +104,7 @@ function saveDb(db) {
 
 export function resetDemoData() {
   writeStorage(STORAGE_KEYS.db, null);
-  writeStorage(STORAGE_KEYS.session, null);
+  writeSession(null);
 }
 
 export function isErrorSimulationOn() {
@@ -155,8 +175,9 @@ function applyConfirmationRules(db, now) {
 
 /* ---------- helpers that build API responses ---------- */
 
-function publicUser(user) {
-  return { id: user.id, name: user.name, phone: user.phone };
+function publicUser(db, user) {
+  const shop = user.shopId ? db.shops.find((s) => s.id === user.shopId) : null;
+  return { id: user.id, role: user.role, name: user.name, phone: user.phone, shop: shop ? { id: shop.id, name: shop.name, area: shop.area } : null };
 }
 
 function withDuration(db, entry) {
@@ -251,9 +272,23 @@ function requireUser(ctx) {
   return ctx.user;
 }
 
+// Customer-only endpoints (joining, tickets, reviews).
+function requireCustomer(ctx) {
+  const user = requireUser(ctx);
+  if (user.role !== "customer") throw new ApiError(403, "This page is for customer accounts.");
+  return user;
+}
+
+// Owner-only endpoints (the shop dashboard).
+function requireOwner(ctx) {
+  const user = requireUser(ctx);
+  if (user.role !== "owner") throw new ApiError(403, "Only shop owners can open the dashboard.");
+  return user;
+}
+
 // A customer can only see and change their own tickets.
 function ownTicket(db, ctx, ticketId) {
-  const user = requireUser(ctx);
+  const user = requireCustomer(ctx);
   const id = requireNumber(ticketId, "Ticket number");
   const entry = db.queueEntries.find((e) => e.id === id);
   if (!entry || entry.phone !== user.phone) throw new ApiError(404, `No ticket #${id} on your account.`);
@@ -316,9 +351,10 @@ const handlers = {
     // Express: router.get("/me") -> account, strikes and tickets
     "/api/me": (db, params, ctx) => {
       const user = requireUser(ctx);
+      if (user.role === "owner") return { user: publicUser(db, user) };
       const mine = db.queueEntries.filter((e) => e.phone === user.phone).sort((a, b) => b.joinedAt - a.joinedAt);
       return {
-        user: publicUser(user),
+        user: publicUser(db, user),
         strikes: strikeStatus(db, user.phone, ctx.now),
         activeTickets: mine.filter((e) => ACTIVE_STATUSES.includes(e.status)).map((e) => ticketView(db, e, ctx.now)),
         pastTickets: mine
@@ -331,9 +367,10 @@ const handlers = {
     // Express: router.get("/ticket", req.query.id) -> owner only
     "/api/ticket": (db, params, ctx) => ticketView(db, ownTicket(db, ctx, params.id), ctx.now),
 
-    // Express: router.get("/queue", req.query.shopId) -> shop dashboard
+    // Express: router.get("/queue") -> shop dashboard, owner's own shop only
     "/api/queue": (db, params, ctx) => {
-      const shopId = requireNumber(params.shopId, "Shop id");
+      const owner = requireOwner(ctx);
+      const shopId = owner.shopId;
       const shop = db.shops.find((s) => s.id === shopId);
       if (!shop) throw new ApiError(404, `No shop with id ${shopId}.`);
       return {
@@ -414,12 +451,21 @@ const handlers = {
           code: left > 0 ? `Wrong code. ${left} ${left === 1 ? "try" : "tries"} left.` : "Too many tries. Select \"Send a new code\".",
         });
       }
-      const user = { id: db.nextUserId++, name: pending.name, phone: pending.phone, passwordHash: pending.passwordHash, createdAt: ctx.now };
+      // Sign-up creates customer accounts only; owner accounts are set up by Dorak when a shop joins.
+      const user = {
+        id: db.nextUserId++,
+        role: "customer",
+        shopId: null,
+        name: pending.name,
+        phone: pending.phone,
+        passwordHash: pending.passwordHash,
+        createdAt: ctx.now,
+      };
       db.users.push(user);
       db.pendingSignups = db.pendingSignups.filter((p) => p.id !== pending.id);
       saveDb(db);
-      writeStorage(STORAGE_KEYS.session, String(user.id));
-      return publicUser(user);
+      writeSession(String(user.id));
+      return publicUser(db, user);
     },
 
     // Express: router.post("/auth/login", req.body)
@@ -431,19 +477,19 @@ const handlers = {
       if (!user || user.passwordHash !== demoHash(body.password)) {
         throw new ApiError(401, "The phone number or password is incorrect.");
       }
-      writeStorage(STORAGE_KEYS.session, String(user.id));
-      return publicUser(user);
+      writeSession(String(user.id));
+      return publicUser(db, user);
     },
 
     // Express: router.post("/auth/logout")
     "/api/auth/logout": () => {
-      writeStorage(STORAGE_KEYS.session, null);
+      writeSession(null);
       return { ok: true };
     },
 
     // Express: router.post("/queue/join", req.body) -> logged-in customers only
     "/api/queue/join": (db, body, ctx) => {
-      const user = requireUser(ctx);
+      const user = requireCustomer(ctx);
       const barberId = requireNumber(body.barberId, "Barber id");
       const barber = db.barbers.find((b) => b.id === barberId);
       if (!barber) throw new ApiError(404, `No barber with id ${barberId}.`);
@@ -516,11 +562,13 @@ const handlers = {
       return ticketView(db, entry, ctx.now);
     },
 
-    // Express: router.post("/queue/update", req.body) -> dashboard actions
+    // Express: router.post("/queue/update", req.body) -> dashboard actions, own shop only
     "/api/queue/update": (db, body, ctx) => {
+      const owner = requireOwner(ctx);
       const id = requireNumber(body.entryId, "Ticket number");
       const entry = db.queueEntries.find((e) => e.id === id);
-      if (!entry) throw new ApiError(404, `No ticket with number ${id}.`);
+      const barber = entry && db.barbers.find((b) => b.id === entry.barberId);
+      if (!entry || barber.shopId !== owner.shopId) throw new ApiError(404, `No ticket #${id} in your shop.`);
 
       const allowed = { waiting: ["in_chair", "no_show"], in_chair: ["served"] };
       if (!(allowed[entry.status] || []).includes(body.status)) {
@@ -577,7 +625,7 @@ function request(method, endpoint, payload = {}) {
         const db = loadDb();
         const now = Date.now();
         if (applyConfirmationRules(db, now)) saveDb(db);
-        const sessionId = Number(readStorage(STORAGE_KEYS.session));
+        const sessionId = Number(readSession());
         const ctx = { now, user: db.users.find((u) => u.id === sessionId) || null };
 
         const result = handler(db, payload, ctx);
