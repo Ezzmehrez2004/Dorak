@@ -3,6 +3,12 @@
 Milestone 1 frontend for the Web-Based Design course project.
 Customers pick a barber, see the live wait, join the queue from their phone and follow their place in line. Shop owners manage each barber's queue from a dashboard. Customers leave verified reviews after a visit.
 
+The site opens on the **login page**. There are two account types, and where you land depends on which one logs in:
+- **Customer accounts** see the booking side only: Find a barber, My turn, Account.
+- **Shop owner accounts** see only the dashboard for their own shop. Each owner account belongs to one shop.
+
+Anyone can sign up as a customer. Owner accounts are set up by Dorak when a shop joins, so they are seeded in the demo data.
+
 Customers have accounts, with the mobile number as the account identity, checked with a 6-digit SMS code at sign-up. Three fair-queue rules reduce no-shows and fake bookings:
 - **On my way:** when you're 2nd in line, you must confirm within 10 minutes, or you move to the back of the line. Missing twice counts as a no-show.
 - **Strikes:** 2 no-shows in 30 days pause walk-in joining for 7 days. Priority joining still works.
@@ -12,16 +18,21 @@ Customers have accounts, with the mobile number as the account identity, checked
 
 **Live site:** https://ezzmehrez2004.github.io/Dorak/ (GitHub Pages, rebuilt automatically on every push to `main`). Also deployed at https://dorak-barber.netlify.app.
 
-> **Mock data notice.** This milestone has no server. Every shop, barber, service, queue entry and review is mock data defined in `src/data/mockData.js` and served by a mock API in `src/api/api.js`. Changes are saved in the browser's localStorage, including accounts, joining a queue, dashboard actions and reviews. Customer login is mocked: the logged-in user is kept in localStorage instead of a server session, and passwords are scrambled with a demo-only function, not real hashing. **SMS verification is mocked too:** no text message is sent; the 6-digit code is shown on screen in a box labeled "Demo build". Shop owners have no login yet: on the dashboard a shop selector stands in for signing in. Priority fees are calculated and displayed, but no payment is taken. Milestone 2 replaces the mock API with an Express + MySQL backend.
+> **Mock data notice.** This milestone has no server. Every shop, barber, service, queue entry and review is mock data defined in `src/data/mockData.js` and served by a mock API in `src/api/api.js`. Changes are saved in the browser's localStorage, including accounts, joining a queue, dashboard actions and reviews. Login is mocked: the logged-in user is kept in the browser's sessionStorage instead of a server session, so closing the browser logs you out, and passwords are scrambled with a demo-only function, not real hashing. **SMS verification is mocked too:** no text message is sent; the 6-digit code is shown on screen in a box labeled "Demo build". Priority fees are calculated and displayed, but no payment is taken. Milestone 2 replaces the mock API with an Express + MySQL backend.
 
 ## Demo accounts
 
-| Mobile number | Password | Use it to show |
-| --- | --- | --- |
-| `01000000001` | `demo1234` | A regular customer with a finished visit to review (ticket #99) |
-| `01000000002` | `demo1234` | A customer with 2 no-shows: walk-in joining is paused |
+Password for every demo account: `demo1234`. The list is also shown on the login page.
 
-You can also create a new account at `/signup`.
+| Mobile number | Account type | Use it to show |
+| --- | --- | --- |
+| `01000000001` | Customer | A regular customer with a finished visit to review (ticket #99) |
+| `01000000002` | Customer | A customer with 2 no-shows: walk-in joining is paused |
+| `01000000011` | Shop owner | Dashboard for Salon El Ostaz, Nasr City (Hassan Fouad, Sherif Adel) |
+| `01000000012` | Shop owner | Dashboard for Gentlemen's Corner, Maadi (Mido Saber, Ramy Lotfy) |
+| `01000000013` | Shop owner | Dashboard for Kasr El Shaar, Heliopolis (Am Sayed, Karim Hosny, Youssef Nader) |
+
+You can also create a new customer account at `/signup`.
 
 ## Requirements
 
@@ -61,25 +72,27 @@ Bootstrap's CSS is imported once in `src/main.jsx`. `src/styles/theme.css` overr
 
 ## Routes
 
-| Route | Page component | What it shows |
-| --- | --- | --- |
-| `/` | `HomePage` | Search, filter by area and sort barbers; each card shows rating and live wait |
-| `/barbers/:barberId` | `BarberPage` | Profile, services and prices, live queue, priority fee, verified reviews |
-| `/login` | `LoginPage` | Log in with mobile number and password |
-| `/signup` | `SignupPage` | Step 1: details and agreement to the fair queue rules. Step 2: 6-digit SMS code |
-| `/barbers/:barberId/join` | `JoinQueuePage` | Join-queue form: service and walk-in or priority (login required) |
-| `/my-turn` | `MyTurnPage` | Your active tickets; opens the ticket directly if you have one (login required) |
-| `/my-turn/:ticketId` | `MyTurnPage` | Live ticket: position, wait, "I'm on my way", leave queue, review after the visit (login required) |
-| `/account` | `AccountPage` | Profile, queue standing (strikes), tickets and past visits, log out (login required) |
-| `/dashboard` | `DashboardPage` | Shop owner view: seat, mark served or no-show; shows who confirmed they're on the way |
-| `*` | `NotFoundPage` | Friendly 404 with a link home |
+Logged-out visitors are sent to `/login`. A logged-in user who opens a page meant for the other account type is sent to their own home page.
+
+| Route | Page component | Who can open it | What it shows |
+| --- | --- | --- | --- |
+| `/login` | `LoginPage` | Logged out (first page) | Log in with mobile number and password; demo accounts listed |
+| `/signup` | `SignupPage` | Logged out | Customer sign-up. Step 1: details and the fair queue rules. Step 2: 6-digit SMS code |
+| `/` | `HomePage` | Customers | Search, filter by area and sort barbers; each card shows rating and live wait |
+| `/barbers/:barberId` | `BarberPage` | Customers | Profile, services and prices, live queue, priority fee, verified reviews |
+| `/barbers/:barberId/join` | `JoinQueuePage` | Customers | Join-queue form: service and walk-in or priority |
+| `/my-turn` | `MyTurnPage` | Customers | Your active tickets; opens the ticket directly if you have one |
+| `/my-turn/:ticketId` | `MyTurnPage` | Customers | Live ticket: position, wait, "I'm on my way", leave queue, review after the visit |
+| `/account` | `AccountPage` | Customers | Profile, queue standing (strikes), tickets and past visits, log out |
+| `/dashboard` | `DashboardPage` | Shop owners | The owner's own shop: seat, mark served or no-show; shows who confirmed they're on the way |
+| `*` | `NotFoundPage` | Anyone | Friendly 404 with a link home |
 
 ## Components
 
 | Component | Responsibility | Used in |
 | --- | --- | --- |
-| `NavBar` | Main navigation; shows Log in / Sign up or the account link; collapses on small screens | `App` |
-| `RequireAuth` | Sends logged-out visitors to `/login`, then back to the page they wanted | `App` routes |
+| `NavBar` | Main navigation; links depend on the account type (customer or owner), plus Log out; collapses on small screens | `App` |
+| `RequireAuth`, `PublicOnly` | Route guards: send logged-out visitors to `/login` and wrong account types to their own home; keep logged-in users off the login page | `App` routes |
 | `VerifyCodeForm` | Enter the SMS code, with resend countdown, attempt limit and "Change number" | `SignupPage` |
 | `TicketList` | A customer's tickets with status, linking to each live ticket | `MyTurnPage`, `AccountPage` |
 | `Footer` | Mock-data label and demo tools (simulate server error, reset data) | `App` |
@@ -117,10 +130,11 @@ Each barber can have at most **2 priority customers waiting at a time**, so walk
 ## Acceptance demo (Milestone 1 checks)
 
 1. **Complete navigation path:**
-   1. On Find a barber, open Hassan Fouad and select **Join the queue**. You're sent to Log in.
-   2. Select **Create an account**, fill in your details, then enter the 6-digit code shown in the demo box. You return to the join form.
-   3. Join, then select **Track my turn**.
-   4. Use the navbar to reach **Account** and **Shop dashboard**.
+   1. Open the site: the login page appears first.
+   2. Select **Create an account**, fill in your details, then enter the 6-digit code shown in the demo box. You land on Find a barber.
+   3. Open Hassan Fouad, select **Join the queue**, join, then select **Track my turn**.
+   4. Use the navbar to reach **Account**, then **Log out**.
+   5. Log in as shop owner `01000000011`: you land on the Salon El Ostaz dashboard and see your new ticket in Hassan Fouad's queue. Customer pages are not available to this account.
 2. **Valid form submissions:** create an account (details, then SMS code), join a queue, post a review.
 3. **Invalid input feedback:**
    - Submit Sign up empty, or with passwords that don't match.
@@ -130,7 +144,7 @@ Each barber can have at most **2 priority customers waiting at a time**, so walk
    - Choose Priority without ticking the fee box.
    - Try to join a second queue while you already have a ticket.
 4. **Fair-queue rules:**
-   - Join Ramy Lotfy, who has an empty queue. You're immediately asked "Are you on your way?". Confirm, then check the dashboard (Gentlemen's Corner) for the "On the way" badge.
+   - Join Ramy Lotfy, who has an empty queue. You're immediately asked "Are you on your way?". Confirm, log out, then log in as owner `01000000012` (Gentlemen's Corner) and look for the "On the way" badge.
    - **Leave the queue** on a ticket: no strike is added.
    - Log in as `01000000002`: walk-in is disabled on the join form, and Account shows walk-in joining as paused.
    - Open Mido Saber: priority is full (2 of 2), so only walk-in is available. Join Hassan Fouad as priority to fill his last spot.
@@ -184,7 +198,7 @@ Replace `request()` in `src/api/api.js` with `fetch()` calls to an Express serve
 - Accounts: `POST /api/auth/register` (sends SMS code), `POST /api/auth/verify`, `POST /api/auth/resend-code`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/me`
 - Browsing: `GET /api/shops`, `GET /api/barbers`, `GET /api/barber?id=`
 - Tickets: `GET /api/ticket?id=`, `POST /api/queue/join`, `POST /api/queue/confirm`, `POST /api/queue/leave`
-- Dashboard: `GET /api/queue?shopId=`, `POST /api/queue/update`
+- Dashboard (owner accounts, own shop only): `GET /api/queue`, `POST /api/queue/update`
 - Reviews: `POST /api/reviews`
 
-The handlers in `api.js` already show what each endpoint returns and which rules it enforces. The data moves into seven MySQL tables: `users`, `phone_verifications`, `shops`, `barbers`, `services`, `queue_entries` and `reviews`. Passwords will be hashed with bcrypt, and the logged-in user kept in a server session. Verification codes will be sent through an SMS gateway; the server will stop returning `demoCode`.
+The handlers in `api.js` already show what each endpoint returns and which rules it enforces. The data moves into seven MySQL tables: `users` (with a `role` of customer or owner, and a `shop_id` for owners), `phone_verifications`, `shops`, `barbers`, `services`, `queue_entries` and `reviews`. Passwords will be hashed with bcrypt, and the logged-in user kept in a server session. Verification codes will be sent through an SMS gateway; the server will stop returning `demoCode`.
