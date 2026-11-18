@@ -158,6 +158,18 @@ Each barber can have at most **2 priority customers waiting at a time**, so walk
 
 **Reset demo data** in the footer restores the original mock data and logs you out.
 
+## Screenshots
+
+The home page ("Find a barber") on the live site at three screen sizes. The layout changes at each size: one column with a menu button on the phone, two columns on the tablet, three columns with the full navbar on the laptop.
+
+| Phone | Tablet (portrait) |
+| --- | --- |
+| <img src="docs/screenshots/home-phone.jpg" alt="Home page on a phone: one column, menu button" width="260"> | <img src="docs/screenshots/home-tablet.jpg" alt="Home page on a tablet: two columns, menu button" width="360"> |
+
+**Laptop**
+
+<img src="docs/screenshots/home-laptop.png" alt="Home page on a laptop: three columns, full navbar" width="720">
+
 ## Accessibility
 
 - Semantic landmarks: `header`, `nav`, `main`, `footer`, `section`, and headings in order.
