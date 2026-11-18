@@ -708,3 +708,7 @@ main:focus {
   opacity: 0.6;
   background: var(--dk-paper);
 }
+
+.dk-nav-user {
+  color: rgba(255, 255, 255, 0.75);
+}
