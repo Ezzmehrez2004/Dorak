@@ -16,7 +16,7 @@ export default function Footer() {
   const reset = () => {
     if (window.confirm("Reset all queues, tickets and reviews to the original demo data?")) {
       resetDemoData();
-      window.location.assign("/");
+      window.location.assign(import.meta.env.BASE_URL);
     }
   };
 
