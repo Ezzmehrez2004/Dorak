@@ -1,27 +1,22 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { get, post } from "../api/api.js";
 import QueueList from "../components/QueueList.jsx";
 import { ErrorState, LoadingState } from "../components/States.jsx";
 import WaitBadge from "../components/WaitBadge.jsx";
 import { POLL_MS } from "../config.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useApi } from "../hooks/useApi.js";
 
 /*
- * Route "/dashboard": the shop owner's view of every barber's queue.
- * Milestone 1 has no login; the shop selector stands in for signing in.
+ * Route "/dashboard": shop owner accounts only. Shows every barber's queue
+ * in the owner's own shop; the server checks the shop on every action.
  */
 export default function DashboardPage() {
-  const shops = useApi(() => get("/api/shops"), []);
-  const [shopId, setShopId] = useState("");
+  const { user } = useAuth();
   const [pendingId, setPendingId] = useState(null);
   const [notice, setNotice] = useState(null); // { kind: "success" | "danger", text }
 
-  // Pick the first shop once the list arrives.
-  useEffect(() => {
-    if (shops.data?.length && !shopId) setShopId(String(shops.data[0].id));
-  }, [shops.data, shopId]);
-
-  const queue = useApi(() => get("/api/queue", { shopId }), [shopId], { pollMs: POLL_MS, skip: !shopId });
+  const queue = useApi(() => get("/api/queue"), [], { pollMs: POLL_MS });
 
   const act = async (entry, status, message) => {
     setPendingId(entry.id);
@@ -73,33 +68,14 @@ export default function DashboardPage() {
     <div className="container py-4">
       <h1 className="dk-page-title">Shop dashboard</h1>
 
-      {shops.loading && <LoadingState label="Loading shops…" />}
-      {shops.error && <ErrorState message={shops.error.message} onRetry={shops.reload} />}
-
-      {shops.data && (
-        <div className="row g-3 align-items-end mb-3">
-          <div className="col-12 col-sm-8 col-md-5">
-            <label htmlFor="shop-select" className="form-label">
-              Your shop
-            </label>
-            <select id="shop-select" className="form-select" value={shopId} onChange={(e) => setShopId(e.target.value)} aria-describedby="shop-select-hint">
-              {shops.data.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}, {s.area}
-                </option>
-              ))}
-            </select>
-            <div id="shop-select-hint" className="form-text">
-              Demo build: choosing a shop stands in for signing in.
-            </div>
-          </div>
-          <div className="col-12 col-md-7 text-md-end">
-            <button type="button" className="btn btn-outline-primary btn-sm" onClick={queue.reload} disabled={queue.loading}>
-              {queue.loading ? "Refreshing…" : "Refresh queues"}
-            </button>
-          </div>
-        </div>
-      )}
+      <div className="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+        <p className="text-secondary mb-0">
+          {user.shop.name}, {user.shop.area}. Logged in as {user.name}.
+        </p>
+        <button type="button" className="btn btn-outline-primary btn-sm" onClick={queue.reload} disabled={queue.loading}>
+          {queue.loading ? "Refreshing…" : "Refresh queues"}
+        </button>
+      </div>
 
       <div aria-live="polite">
         {notice && (
@@ -110,7 +86,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {queue.loading && !queue.data && shopId && <LoadingState label="Loading queues…" />}
+      {queue.loading && !queue.data && <LoadingState label="Loading queues…" />}
       {queue.error && !queue.data && <ErrorState message={queue.error.message} onRetry={queue.reload} />}
       {queue.error && queue.data && (
         <div className="alert alert-warning py-2" role="status">

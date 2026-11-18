@@ -1,19 +1,20 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import FormField from "../components/FormField.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
+import { afterLoginPath, useAuth } from "../context/AuthContext.jsx";
 import { useForm } from "../hooks/useForm.js";
 import { validateLogin } from "../utils/validation.js";
 
 const FIELDS = ["phone", "password"];
 const idFor = (f) => `login-${f}`;
 
-// Route "/login": log in with mobile number and password.
+// Route "/login": the first page visitors see. One form for both account types;
+// customers land on "Find a barber", shop owners on their dashboard.
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from || "/";
+  const from = location.state?.from;
   const form = useForm({ phone: "", password: "" }, validateLogin);
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState("idle"); // idle | submitting | error
@@ -25,8 +26,8 @@ export default function LoginPage() {
     if (!form.trySubmit(FIELDS, idFor)) return;
     setStatus("submitting");
     try {
-      await login(form.values);
-      navigate(from, { replace: true });
+      const user = await login(form.values);
+      navigate(afterLoginPath(user, from), { replace: true });
     } catch (err) {
       setStatus("error");
       setServerError(err.message);
@@ -37,7 +38,7 @@ export default function LoginPage() {
   return (
     <div className="container py-4 dk-auth">
       <h1 className="dk-page-title">Log in</h1>
-      {location.state?.from && <p className="text-secondary">Log in to join a queue and follow your turn.</p>}
+      <p className="text-secondary">Customers log in to join a queue. Shop owners log in to manage their shop.</p>
 
       <form className="card dk-card" onSubmit={handleSubmit} noValidate>
         <div className="card-body">
@@ -80,9 +81,18 @@ export default function LoginPage() {
       </p>
 
       <aside className="dk-demo-note small" aria-label="Demo accounts">
-        <p className="fw-semibold mb-1">Demo accounts (mock data)</p>
-        <p className="mb-1">01000000001 with password demo1234: a regular customer with a visit to review.</p>
-        <p className="mb-0">01000000002 with password demo1234: has two no-shows, so walk-in joining is paused.</p>
+        <p className="fw-semibold mb-1">Demo accounts (mock data, password demo1234 for all)</p>
+        <p className="fw-semibold mb-0 mt-2">Customers</p>
+        <ul className="mb-1 ps-3">
+          <li>01000000001: regular customer with a visit to review</li>
+          <li>01000000002: two no-shows, so walk-in joining is paused</li>
+        </ul>
+        <p className="fw-semibold mb-0">Shop owners</p>
+        <ul className="mb-0 ps-3">
+          <li>01000000011: Salon El Ostaz, Nasr City</li>
+          <li>01000000012: Gentlemen's Corner, Maadi</li>
+          <li>01000000013: Kasr El Shaar, Heliopolis</li>
+        </ul>
       </aside>
     </div>
   );

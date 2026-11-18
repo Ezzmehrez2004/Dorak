@@ -19,7 +19,7 @@ export default function AccountPage() {
     setLoggingOut(true);
     try {
       await logout();
-      navigate("/");
+      navigate("/login", { replace: true });
     } catch {
       setLoggingOut(false);
     }

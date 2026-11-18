@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import FormField from "../components/FormField.jsx";
 import VerifyCodeForm from "../components/VerifyCodeForm.jsx";
 import { RULES } from "../config.js";
-import { useAuth } from "../context/AuthContext.jsx";
+import { afterLoginPath, useAuth } from "../context/AuthContext.jsx";
 import { useForm } from "../hooks/useForm.js";
 import { validateRegister } from "../utils/validation.js";
 
@@ -16,7 +16,7 @@ export default function SignupPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from || "/";
+  const from = location.state?.from;
   const form = useForm({ name: "", phone: "", password: "", confirmPassword: "", acceptRules: false }, validateRegister);
   const [status, setStatus] = useState("idle");
   const [serverError, setServerError] = useState("");
@@ -42,7 +42,7 @@ export default function SignupPage() {
       <div className="container py-4 dk-auth">
         <h1 className="dk-page-title">Verify your number</h1>
         <p className="text-secondary small">Step 2 of 2</p>
-        <VerifyCodeForm pending={pending} onVerified={() => navigate(from, { replace: true })} onChangeNumber={() => setPending(null)} />
+        <VerifyCodeForm pending={pending} onVerified={(user) => navigate(afterLoginPath(user, from), { replace: true })} onChangeNumber={() => setPending(null)} />
       </div>
     );
   }
@@ -51,7 +51,10 @@ export default function SignupPage() {
     <div className="container py-4 dk-auth">
       <h1 className="dk-page-title">Create your account</h1>
       <p className="text-secondary small mb-1">Step 1 of 2</p>
-      <p className="text-secondary">Your mobile number is your account. We'll text it a code to check it's yours.</p>
+      <p className="text-secondary">
+        Customer account. Your mobile number is your account, and we'll text it a code to check it's yours. Shop owner
+        accounts are set up by Dorak when a shop joins.
+      </p>
 
       <form className="card dk-card" onSubmit={handleSubmit} noValidate>
         <div className="card-body">
