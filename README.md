@@ -10,6 +10,8 @@ Customers have accounts, with the mobile number as the account identity, checked
 
 **Student:** [Your full name] ([Your student ID]), solo project.
 
+**Live site:** https://ezzmehrez2004.github.io/Dorak/ (GitHub Pages, rebuilt automatically on every push to `main`). Also deployed at https://dorak-barber.netlify.app.
+
 > **Mock data notice.** This milestone has no server. Every shop, barber, service, queue entry and review is mock data defined in `src/data/mockData.js` and served by a mock API in `src/api/api.js`. Changes are saved in the browser's localStorage, including accounts, joining a queue, dashboard actions and reviews. Customer login is mocked: the logged-in user is kept in localStorage instead of a server session, and passwords are scrambled with a demo-only function, not real hashing. **SMS verification is mocked too:** no text message is sent; the 6-digit code is shown on screen in a box labeled "Demo build". Shop owners have no login yet: on the dashboard a shop selector stands in for signing in. Priority fees are calculated and displayed, but no payment is taken. Milestone 2 replaces the mock API with an Express + MySQL backend.
 
 ## Demo accounts
