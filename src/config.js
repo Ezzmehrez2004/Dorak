@@ -6,9 +6,11 @@ export const POLL_MS = 30000;
 // Simulated network delay of the mock API (milliseconds).
 export const MOCK_DELAY_MS = 450;
 
-// localStorage keys used by the mock data layer.
+// Browser storage keys used by the mock data layer. The mock database lives
+// in localStorage; the logged-in session lives in sessionStorage, so closing
+// the browser logs you out and the site always starts at the login page.
 export const STORAGE_KEYS = {
-  db: "dorak:mockdb:v2",
+  db: "dorak:mockdb:v3",
   simulateError: "dorak:simulateError",
   session: "dorak:session",
 };

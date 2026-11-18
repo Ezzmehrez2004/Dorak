@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import Footer from "./components/Footer.jsx";
 import NavBar from "./components/NavBar.jsx";
-import RequireAuth from "./components/RequireAuth.jsx";
+import RequireAuth, { PublicOnly } from "./components/RequireAuth.jsx";
 import AccountPage from "./pages/AccountPage.jsx";
 import BarberPage from "./pages/BarberPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
@@ -32,16 +32,18 @@ export default function App() {
       <NavBar />
       <main id="main" className="flex-grow-1" tabIndex={-1}>
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/barbers/:barberId" element={<BarberPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          {/* Customer pages: logged-in users only */}
-          <Route path="/barbers/:barberId/join" element={<RequireAuth><JoinQueuePage /></RequireAuth>} />
-          <Route path="/my-turn" element={<RequireAuth><MyTurnPage /></RequireAuth>} />
-          <Route path="/my-turn/:ticketId" element={<RequireAuth><MyTurnPage /></RequireAuth>} />
-          <Route path="/account" element={<RequireAuth><AccountPage /></RequireAuth>} />
+          {/* Public: logged-out visitors start at /login */}
+          <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
+          <Route path="/signup" element={<PublicOnly><SignupPage /></PublicOnly>} />
+          {/* Customer accounts only */}
+          <Route path="/" element={<RequireAuth role="customer"><HomePage /></RequireAuth>} />
+          <Route path="/barbers/:barberId" element={<RequireAuth role="customer"><BarberPage /></RequireAuth>} />
+          <Route path="/barbers/:barberId/join" element={<RequireAuth role="customer"><JoinQueuePage /></RequireAuth>} />
+          <Route path="/my-turn" element={<RequireAuth role="customer"><MyTurnPage /></RequireAuth>} />
+          <Route path="/my-turn/:ticketId" element={<RequireAuth role="customer"><MyTurnPage /></RequireAuth>} />
+          <Route path="/account" element={<RequireAuth role="customer"><AccountPage /></RequireAuth>} />
+          {/* Shop owner accounts only */}
+          <Route path="/dashboard" element={<RequireAuth role="owner"><DashboardPage /></RequireAuth>} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
