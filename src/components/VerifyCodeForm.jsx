@@ -43,8 +43,8 @@ export default function VerifyCodeForm({ pending: initialPending, onVerified, on
     }
     setStatus("verifying");
     try {
-      await verifyCode(pending.pendingId, code.trim());
-      onVerified();
+      const user = await verifyCode(pending.pendingId, code.trim());
+      onVerified(user);
     } catch (err) {
       setStatus("idle");
       setServerFieldError(err.fields?.code || null);
