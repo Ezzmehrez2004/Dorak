@@ -14,7 +14,12 @@ Customers have accounts, with the mobile number as the account identity, checked
 - **Strikes:** 2 no-shows in 30 days pause walk-in joining for 7 days. Priority joining still works.
 - **Leave free:** leaving the queue early never counts as a no-show.
 
-**Student:** [Your full name] ([Your student ID]), solo project.
+**Team:**
+
+| Name | Student ID | Responsibilities |
+| --- | --- | --- |
+| Ezz Mehrez | 900221023 | Business Model Canvas and summary; UI design and theme; customer pages (Find a barber, barber profile, join queue, My turn, reviews); live wait time and priority fee logic; GitHub and deployment |
+| Ahmed Kamal | 900222715 | Scope and database design; accounts, SMS verification screens and access by account type; shop owner dashboard; mock data and mock API; validation, accessibility and responsive testing; README and screenshots |
 
 **Live site:** https://ezzmehrez2004.github.io/Dorak/ (GitHub Pages, rebuilt automatically on every push to `main`). Also deployed at https://dorak-barber.netlify.app.
 
