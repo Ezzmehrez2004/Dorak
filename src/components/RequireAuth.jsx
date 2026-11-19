@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { homeFor, useAuth } from "../context/AuthContext.jsx";
-import { LoadingState } from "./States.jsx";
+import { ErrorState, LoadingState } from "./States.jsx";
 
 /*
  * Route guards.
@@ -18,10 +18,18 @@ function Checking() {
 }
 
 export default function RequireAuth({ role, children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, authError, recheck } = useAuth();
   const location = useLocation();
 
   if (loading) return <Checking />;
+  // Server unreachable: show the error with a retry instead of logging the user out.
+  if (authError) {
+    return (
+      <div className="container py-4">
+        <ErrorState message={authError.message} onRetry={recheck} />
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   if (role && user.role !== role) return <Navigate to={homeFor(user)} replace />;
   return children;
