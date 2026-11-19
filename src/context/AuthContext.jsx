@@ -25,21 +25,34 @@ export function afterLoginPath(user, from) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Set when the session check fails because the server is unreachable
+  // (not because nobody is logged in), so pages show an error, not the login page.
+  const [authError, setAuthError] = useState(null);
+  const [checkKey, setCheckKey] = useState(0);
 
-  // On first load, ask the API who is logged in (if anyone).
+  // On first load (and on retry), ask the API who is logged in (if anyone).
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setAuthError(null);
     get("/api/me")
       .then((me) => !cancelled && setUser(me.user))
-      .catch(() => !cancelled && setUser(null))
+      .catch((err) => {
+        if (cancelled) return;
+        if (err.status === 401) setUser(null);
+        else setAuthError(err);
+      })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [checkKey]);
+
+  const recheck = useCallback(() => setCheckKey((k) => k + 1), []);
 
   const login = useCallback(async (values) => {
     const u = await post("/api/auth/login", values);
+    setAuthError(null);
     setUser(u);
     return u;
   }, []);
@@ -61,7 +74,7 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  return <AuthContext.Provider value={{ user, loading, login, register, verifyCode, resendCode, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, authError, recheck, login, register, verifyCode, resendCode, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
